@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Secure Download & Decrypt</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+      padding: 40px;
+    }
+    h2 {
+      color: #38bdf8;
+    }
+    input, textarea, button, pre {
+      display: block;
+      margin-top: 12px;
+      padding: 10px;
+      width: 100%;
+      max-width: 600px;
+      background: #020617;
+      color: #e5e7eb;
+      border: 1px solid #334155;
+      border-radius: 4px;
+    }
+    button {
+      background: #0284c7;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0369a1;
+    }
+    textarea {
+      height: 80px;
+    }
+    pre {
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Secure Download & Decrypt</h2>
+
+<input type="file" id="fileInput" />
+<textarea id="ivInput" placeholder="Paste IV (base64) here"></textarea>
+<textarea id="keyInput" placeholder="Paste Encrypted AES Key (base64) here"></textarea>
+
+<button onclick="decryptFile()">Decrypt File</button>
+
+<pre id="output">Waiting for input...</pre>
+
+<script>
+function base64ToBytes(b64) {
+  const binary = atob(b64.trim());
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function decryptFile() {
+  const fileInput = document.getElementById("fileInput");
+  const ivInput = document.getElementById("ivInput").value;
+  const keyInput = document.getElementById("keyInput").value;
+  const output = document.getElementById("output");
+
+  if (!fileInput.files.length) {
+    output.textContent = "ERROR: Select the .enc file first.";
+    return;
+  }
+  if (!ivInput || !keyInput) {
+    output.textContent = "ERROR: Paste both IV and AES key.";
+    return;
+  }
+
+  output.textContent = "Decrypting file locally...";
+
+  const encryptedFile = fileInput.files[0];
+  const encryptedBuffer = await encryptedFile.arrayBuffer();
+
+  const iv = base64ToBytes(ivInput);
+  const rawKey = base64ToBytes(keyInput);
+
+  // Import AES key
+  const aesKey = await crypto.subtle.importKey(
+    "raw",
+    rawKey,
+    { name: "AES-GCM" },
+    false,
+    ["decrypt"]
+  );
+
+  let decrypted;
+  try {
+    decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: iv },
+      aesKey,
+      encryptedBuffer
+    );
+  } catch (e) {
+    output.textContent = "DECRYPTION FAILED:\n" + e;
+    return;
+  }
+
+  // Save file
+  const blob = new Blob([decrypted]);
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+
+  let originalName = encryptedFile.name.replace(".enc", "");
+  link.download = originalName;
+
+  link.click();
+
+  output.textContent =
+    "SUCCESS:\nFile decrypted and downloaded.\n\n" +
+    "If this worked, the server never saw your file or key.";
+}
+</script>
+
+</body>
+</html>

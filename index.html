@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zero Trust Secure File Sharing — Upload</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+      padding: 40px;
+    }
+    h2 {
+      color: #38bdf8;
+    }
+    input, button, pre {
+      display: block;
+      margin-top: 12px;
+      padding: 10px;
+      width: 100%;
+      max-width: 600px;
+      background: #020617;
+      color: #e5e7eb;
+      border: 1px solid #334155;
+      border-radius: 4px;
+    }
+    button {
+      background: #0284c7;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0369a1;
+    }
+    pre {
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Zero Trust Secure File Sharing — Upload</h2>
+
+<input type="file" id="fileInput" />
+<input type="text" id="receiver" placeholder="Receiver Email (for logs only)" />
+
+<button onclick="encryptAndUpload()">Encrypt & Upload</button>
+
+<pre id="output">Waiting for upload...</pre>
+
+<script>
+async function encryptAndUpload() {
+  const fileInput = document.getElementById("fileInput");
+  const receiver = document.getElementById("receiver").value;
+  const output = document.getElementById("output");
+
+  if (!fileInput.files.length) {
+    output.textContent = "ERROR: Select a file first.";
+    return;
+  }
+
+  const file = fileInput.files[0];
+  output.textContent = "Encrypting file locally...";
+
+  const fileBuffer = await file.arrayBuffer();
+
+  // Generate AES key
+  const aesKey = await crypto.subtle.generateKey(
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"]
+  );
+
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  // Encrypt
+  const encryptedData = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: iv },
+    aesKey,
+    fileBuffer
+  );
+
+  // Export AES key
+  const rawKey = await crypto.subtle.exportKey("raw", aesKey);
+  const encryptedAESKey = btoa(
+    String.fromCharCode(...new Uint8Array(rawKey))
+  );
+
+  const blob = new Blob([encryptedData]);
+  const formData = new FormData();
+  formData.append("file", blob, file.name + ".enc");
+  formData.append("receiver", receiver || "unknown");
+
+  output.textContent = "Uploading encrypted file to secure server...";
+
+  let response;
+  try {
+    response = await fetch("/upload", {
+      method: "POST",
+      body: formData
+    });
+  } catch (e) {
+    output.textContent = "CONNECTION ERROR:\n" + e;
+    return;
+  }
+
+  const text = await response.text();
+  console.log("SERVER RESPONSE:", text);
+
+  let result;
+  try {
+    result = JSON.parse(text);
+  } catch {
+    output.textContent = "INVALID SERVER RESPONSE:\n" + text;
+    return;
+  }
+
+  const ivBase64 = btoa(
+    String.fromCharCode(...new Uint8Array(iv))
+  );
+
+  output.textContent =
+    "STATUS: " + result.status + "\n\n" +
+    "Download Link:\n" +
+    window.location.origin + result.download_link + "\n\n" +
+    "IV (send to receiver):\n" +
+    ivBase64 + "\n\n" +
+    "Encrypted AES Key (send to receiver):\n" +
+    encryptedAESKey + "\n\n" +
+    "SECURITY NOTE:\nOnly someone with the AES key + IV can decrypt the file.";
+}
+</script>
+
+</body>
+</html>
