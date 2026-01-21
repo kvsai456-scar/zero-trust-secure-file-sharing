@@ -66,8 +66,7 @@ zero-trust-secure-file-sharing/
 ├── client/
 │   ├── index.html
 │   └── decrypt.html
-└── docs/
-    └── threat-model.md
+
 ```
 
 ---
