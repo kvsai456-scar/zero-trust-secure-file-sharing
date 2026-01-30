@@ -1,163 +1,175 @@
-# Zero-Trust Secure File Sharing System
+# Zero Trust Secure File Sharing (Proof of Concept)
 
-A secure file sharing web application that enforces client-side encryption, controlled access, and auditability under a zero-trust security model.  
-The server never stores or processes plaintext files — all encryption and decryption occur in the client’s browser.
+## Overview
 
----
+This project is a **Zero Trust–inspired secure file sharing system** designed as a **proof of concept (PoC)** to demonstrate core security principles such as client-side encryption, least-privilege access, and auditability.
 
-## Key Security Principles
+Files are encrypted in the browser before being uploaded to the server. The server never has access to plaintext data and only stores encrypted files and limited metadata. Access is controlled through time-limited and usage-limited download links.
 
-- Zero Trust Architecture  
-  Every request is validated. Shared links are not treated as authorization.
-- Client-Side Encryption (AES-GCM 256-bit)  
-  Files are encrypted in the browser before upload. The server only stores encrypted blobs.
-- Controlled Access Links  
-  Time-limited and download-limited links reduce exposure.
-- Audit Logging & Alerts  
-  All uploads and downloads are logged for traceability and misuse detection.
+This project is intended for **learning, demonstration, and portfolio purposes only** and is not production-ready.
 
 ---
 
-## System Architecture
+## Core Security Principles
 
-**Flow:**
-1. Sender selects a file in the browser  
-2. File is encrypted locally using AES-GCM  
-3. Encrypted file is uploaded to the server  
-4. Server stores encrypted file and issues a time-bound download token  
-5. Receiver downloads encrypted file  
-6. Receiver decrypts locally using the shared key and IV  
+* **Zero Trust Architecture**
+  The system assumes the server is untrusted. All sensitive data is encrypted on the client before transmission.
 
-**Trust Boundaries:**
-- Client → Server: Only encrypted data crosses this boundary  
-- Server → Storage: Only encrypted blobs are persisted  
-- User → Link: Every request is validated under access policies  
+* **Client-Side Encryption**
+  Files are encrypted in the browser using AES-GCM before upload.
+
+* **Least Privilege Access**
+  Shared links are restricted by expiration time and maximum number of downloads.
+
+* **Auditability**
+  Upload and download events are logged for visibility into file access activity.
 
 ---
 
 ## Features
 
-- Client-side file encryption (AES-GCM, 256-bit)
-- Time-bound, limited-use download links
-- Unauthorized first-download detection
-- Full audit log (uploads, downloads, link abuse)
-- Single-origin architecture (no CORS dependency)
-- Secure file storage (encrypted-only persistence)
+* Client-side file encryption using AES-GCM (256-bit)
+* Secure upload and download workflow
+* Time-limited and usage-limited sharing links
+* Basic audit logging for file access events
+* Simple web interface
+* Python Flask backend
 
 ---
 
-## Tech Stack
+## Architecture Overview
 
-- Frontend: HTML, JavaScript (Web Crypto API)  
-- Backend: Python, Flask  
-- Storage: Local filesystem (demo), extensible to S3 or cloud storage  
-- Security: AES-GCM encryption, zero-trust access model  
-
----
-
-## Project Structure
-
-```
-zero-trust-secure-file-sharing/
-├── backend/
-│   ├── backend.py
-│   ├── audit.log
-│   └── storage/
-├── client/
-│   ├── index.html
-│   └── decrypt.html
-
-```
+1. User selects a file in the browser.
+2. The file is encrypted locally using AES-GCM.
+3. The encrypted file is uploaded to the server.
+4. The server stores only encrypted data and metadata.
+5. A secure link is generated with expiration and usage limits.
+6. The recipient downloads the encrypted file and decrypts it locally using the shared key.
 
 ---
 
-## Setup and Run
+## Technology Stack
+
+* Frontend: HTML, CSS, JavaScript (Web Crypto API)
+* Backend: Python (Flask)
+* Encryption: AES-GCM (Client-side)
+* Storage: Local server storage / in-memory metadata
+
+---
+
+## Installation and Setup
 
 ### Prerequisites
-- Python 3.9+
-- Browser with Web Crypto API support (Chrome, Edge, Firefox)
+
+* Python 3.8 or higher
+* Git
+* Modern web browser (Chrome, Firefox, or Edge recommended)
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/kvsai456-scar/zero-trust-secure-file-sharing.git
+cd zero-trust-secure-file-sharing
+```
 
 ### Install Dependencies
-```
+
+```bash
 pip install flask
 ```
 
-### Run Server
-```
-cd backend
-python backend.py
+### Run the Server
+
+```bash
+python app.py
 ```
 
-Open in browser:
+The application will be available at:
+
 ```
 http://127.0.0.1:5000
 ```
 
 ---
 
-## Usage Flow
+## Usage
 
-### Sender
-1. Open the app in the browser  
-2. Select a file  
-3. Click Encrypt & Upload  
-4. Copy:
-   - Download link  
-   - IV  
-   - Encrypted AES key  
-
-### Receiver
-1. Open `/decrypt.html`  
-2. Upload the `.enc` file  
-3. Paste:
-   - IV  
-   - Encrypted AES key  
-4. Click Decrypt File  
-5. Download original file  
+1. Open the web interface in your browser.
+2. Select a file to upload.
+3. The file will be encrypted automatically in the browser.
+4. A download link and encryption key will be generated.
+5. Share the link and key securely with the recipient.
+6. The recipient uses the key to decrypt the file after downloading.
 
 ---
 
-## Audit Logs
+## Project Status: Proof of Concept
 
-View system logs:
-```
-http://127.0.0.1:5000/logs
-```
+This project is a **demonstration of Zero Trust concepts**, not a production-ready secure file sharing platform.
 
-Logs include:
-- Upload events
-- Download attempts
-- Expired link access
-- Download limit violations
+### What This Project Is
+
+* A learning-focused security prototype
+* A portfolio project demonstrating cryptography and secure system design
+* A foundation for building a real Zero Trust file sharing system
+
+### What This Project Is Not
+
+* Not production hardened
+* Not certified for real-world sensitive data
+* Not compliant with enterprise security standards
+
+---
+
+## Known Security Limitations
+
+This implementation intentionally simplifies or omits several critical security features:
+
+* No automated key exchange (encryption keys must be shared manually)
+* No user authentication or identity verification
+* No enforced HTTPS/TLS configuration
+* In-memory metadata storage (non-persistent audit logs and link states)
+* Limited server-side hardening and threat mitigation
+* No rate limiting or replay protection
+
+Because of these limitations, this system **must not be deployed in real environments** without major security upgrades.
+
+---
+
+## Roadmap to Production-Ready
+
+To convert this PoC into a secure platform, the following features must be implemented:
+
+* Secure key exchange (ECDH or RSA-based)
+* Strong TLS enforcement and certificate validation
+* User authentication and role-based access control
+* Persistent, tamper-evident audit logging
+* Rate limiting and replay protection
+* Secure storage backend and server hardening
+* Full threat modeling and penetration testing
+* Deployment using a production-grade WSGI server and hardened infrastructure
 
 ---
 
 ## Threat Model Summary
 
-| Threat | Mitigation |
-|--------|------------|
-| Server breach | Files stored encrypted only |
-| Link theft | Expiry and download limits |
-| Unauthorized access | Token validation and audit logs |
-| Insider misuse | Traceability via logs |
-| File tampering | AES-GCM integrity checks |
+### Threats Considered
+
+* Man-in-the-middle attacks
+* Unauthorized access via leaked links
+* Server compromise
+* Replay attacks
+* Brute force attempts on access endpoints
+
+### Current Mitigations
+
+* Client-side encryption prevents server-side data exposure
+* Link expiration and usage limits reduce long-term exposure
+* Basic audit logs provide visibility into access events
 
 ---
 
-## Limitations
+## Disclaimer
 
-- AES key sharing is manual in this demo (out-of-band)
-- No sandbox-based malware analysis
-- In-memory metadata storage (non-persistent on restart)
-- Not production-hardened (no TLS, no authentication layer)
-
----
-
-## Future Improvements
-
-- Hybrid key exchange (RSA or ECDH)
-- Database-backed metadata and logs
-- TLS enforcement
-- Cloud storage integration (S3, GCS)
-- Behavioral malware analysis
-- Role-based access control
+This software is provided for **educational and demonstration purposes only**.
+Do not use this system to store or share sensitive, personal, or confidential data in real-world environments.
